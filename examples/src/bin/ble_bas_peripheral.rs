@@ -39,6 +39,12 @@ struct FooService {
     foo: u16,
 }
 
+#[nrf_softdevice::gatt_server]
+struct Server {
+    bas: BatteryService,
+    foo: FooService,
+}
+
 #[embassy::task]
 async fn bluetooth_task(sd: &'static Softdevice) {
     let battery_service: BatteryService = unwrap!(gatt_server::register(sd));

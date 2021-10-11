@@ -34,6 +34,17 @@ pub struct GattEvent<'a> {
     pub data: &'a [u8],
 }
 
+pub trait Server: Sized {
+    fn services<'m>() -> &'m [Uuid];
+    fn register<F>(
+        uuid: Uuid,
+        service_handle: u16,
+        register_char: F,
+    ) -> Result<Self, RegisterError>
+    where
+        F: FnMut(Characteristic, &[u8]) -> Result<CharacteristicHandles, RegisterError>;
+}
+
 pub trait Service: Sized {
     type Event;
 
@@ -59,11 +70,13 @@ impl From<RawError> for RegisterError {
 }
 
 pub fn register<S: Service>(_sd: &Softdevice) -> Result<S, RegisterError> {
+    //   for uuid in S::services() {
+    let uuid = S::uuid();
     let mut service_handle: u16 = 0;
     let ret = unsafe {
         raw::sd_ble_gatts_service_add(
             raw::BLE_GATTS_SRVC_TYPE_PRIMARY as u8,
-            S::uuid().as_raw_ptr(),
+            uuid.as_raw_ptr(),
             &mut service_handle as _,
         )
     };
@@ -125,6 +138,7 @@ pub fn register<S: Service>(_sd: &Softdevice) -> Result<S, RegisterError> {
             sccd_handle: handles.sccd_handle,
         })
     })
+    //}
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
